@@ -828,5 +828,6 @@ class PDFEncryptorApp:
 
 if __name__ == "__main__":
     root = tk.Tk()
+    root.iconbitmap("icon.ico")
     app = PDFEncryptorApp(root)
     root.mainloop()
