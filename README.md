@@ -1,7 +1,7 @@
 <div align="center">
-<img src="assets/icons.ico" alt="Fast PDF Encryptor Icon" width="100" height="100" />
+<img src="/icon.ico" alt="PDF Cryptor Icon" width="100" height="100" />
 
-# ⬛ Fast PDF Encryptor
+# ⬛ PDF Cryptor
 
 **Aplikasi desktop ringan untuk mengenkripsi file PDF — satu per satu maupun massal via CSV.**
 
@@ -34,7 +34,7 @@
 
 ## 📌 Tentang Aplikasi
 
-**Fast PDF Encryptor** adalah aplikasi desktop berbasis Python (Tkinter) yang memungkinkan kamu mengenkripsi file PDF dengan password secara cepat. Dirancang untuk kebutuhan produksi — mulai dari mengamankan satu dokumen hingga mengenkripsi ratusan file PDF sekaligus menggunakan daftar CSV.
+**PDF Cryptor** adalah aplikasi desktop berbasis Python (Tkinter) yang memungkinkan kamu mengenkripsi file PDF dengan password secara cepat. Dirancang untuk kebutuhan produksi — mulai dari mengamankan satu dokumen hingga mengenkripsi ratusan file PDF sekaligus menggunakan daftar CSV.
 
 Enkripsi menggunakan standar **AES-256** melalui library `pikepdf`, yang kompatibel dengan semua pembaca PDF modern (Adobe Acrobat, Foxit, browser, dll).
 
@@ -74,8 +74,8 @@ Enkripsi menggunakan standar **AES-256** melalui library `pikepdf`, yang kompati
 ### 1. Clone atau Download
 
 ```bash
-git clone https://github.com/tsukifell/fast-pdf-encryptor.git
-cd fast-pdf-encryptor
+git clone https://github.com/tsukifell/pdf-cryptor.git
+cd pdf-cryptor
 ```
 
 Atau download ZIP langsung dari halaman Releases.
@@ -101,7 +101,7 @@ pip install pikepdf
 ### 4. Jalankan Aplikasi
 
 ```bash
-python fast_pdf_encryptor.py
+python main.py
 ```
 
 ### Catatan Tkinter
