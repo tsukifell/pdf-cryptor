@@ -1,5 +1,5 @@
 """
-Fast PDF Encryptor
+PDF Cryptor
 © 2026 tsukifell. All rights reserved.
 """
 
@@ -15,7 +15,7 @@ from datetime import datetime
 
 
 APP_NAME = "PDF Cryptor"
-APP_VERSION = "1.0"
+APP_VERSION = "1.1"
 COPYRIGHT = "© 2026 tsukifell. All rights reserved."
 CONFIG_FILE = os.path.join(os.path.expanduser("~"), ".pdf_encryptor_config.json")
 
@@ -74,26 +74,50 @@ def validate_pdf(path: str) -> tuple[bool, str]:
         return False, f"File rusak atau tidak valid: {e}"
 
 
+def detect_csv_delimiter(path: str) -> str:
+    """Auto-detect CSV delimiter by sniffing the first line. Falls back to ','."""
+    try:
+        with open(path, newline="", encoding="utf-8-sig") as f:
+            sample = f.read(4096)
+        dialect = csv.Sniffer().sniff(sample, delimiters=",;|\t")
+        return dialect.delimiter
+    except csv.Error:
+        # Sniffer failed — count occurrences on the header line as tiebreaker
+        try:
+            first_line = sample.splitlines()[0] if sample else ""
+            counts = {d: first_line.count(d) for d in (",", ";", "|", "\t")}
+            return max(counts, key=counts.get)
+        except Exception:
+            return ","
+
+
 def validate_csv(path: str) -> tuple[bool, str, list]:
-    """Returns (ok, error_message, rows)."""
+    """Returns (ok, error_message, rows). Auto-detects ',' or ';' delimiter."""
     if not os.path.exists(path):
         return False, "File CSV tidak ditemukan", []
     try:
+        delimiter = detect_csv_delimiter(path)
         rows = []
         with open(path, newline="", encoding="utf-8-sig") as f:
-            reader = csv.DictReader(f)
+            reader = csv.DictReader(f, delimiter=delimiter)
             headers = reader.fieldnames or []
             if "filename" not in headers or "password" not in headers:
-                return False, f"CSV harus punya kolom 'filename' dan 'password'. Kolom ditemukan: {headers}", []
+                return (
+                    False,
+                    f"CSV harus punya kolom 'filename' dan 'password'.\n"
+                    f"Separator terdeteksi: '{delimiter}'\n"
+                    f"Kolom ditemukan: {headers}",
+                    [],
+                )
             for i, row in enumerate(reader, start=2):
                 fname = (row.get("filename") or "").strip()
                 pwd = (row.get("password") or "").strip()
                 if not fname or not pwd:
-                    return False, f"Baris {i} tidak lengkap: {row}", []
+                    return False, f"Baris {i} tidak lengkap: {dict(row)}", []
                 rows.append({"filename": fname, "password": pwd})
         if not rows:
             return False, "CSV kosong, tidak ada baris data", []
-        return True, "", rows
+        return True, delimiter, rows          # delimiter returned as second value when ok
     except UnicodeDecodeError:
         return False, "CSV encoding tidak didukung. Simpan sebagai UTF-8.", []
     except Exception as e:
@@ -545,13 +569,17 @@ class PDFEncryptorApp:
     # ---- Validation UI ----
 
     def _validate_csv_ui(self):
-        ok, err, rows = validate_csv(self.csv_var.get())
+        ok, detail, rows = validate_csv(self.csv_var.get())
         if not ok:
-            messagebox.showerror("CSV Tidak Valid", err)
-            self._log(f"Validasi CSV gagal: {err}", "error")
+            messagebox.showerror("CSV Tidak Valid", detail)
+            self._log(f"Validasi CSV gagal: {detail}", "error")
         else:
-            messagebox.showinfo("CSV Valid", f"CSV valid! {len(rows)} baris ditemukan.")
-            self._log(f"CSV valid: {len(rows)} baris.", "success")
+            sep_label = {";"  : "titik koma (;)",
+                         "\t" : "tab",
+                         "|"  : "pipe (|)"}.get(detail, "koma (,)")
+            messagebox.showinfo("CSV Valid",
+                f"CSV valid!\n{len(rows)} baris ditemukan.\nSeparator terdeteksi: {sep_label}")
+            self._log(f"CSV valid: {len(rows)} baris | separator: '{detail}'", "success")
 
     # ---- Save Settings ----
 
@@ -605,10 +633,11 @@ class PDFEncryptorApp:
             if not os.path.isdir(self.folder_var.get()):
                 messagebox.showerror("Error", "Folder PDF tidak valid.")
                 return
-            ok, err, rows = validate_csv(self.csv_var.get())
+            ok, detail, rows = validate_csv(self.csv_var.get())
             if not ok:
-                messagebox.showerror("CSV Tidak Valid", err)
+                messagebox.showerror("CSV Tidak Valid", detail)
                 return
+            self._log(f"CSV dimuat | separator: '{detail}' | {len(rows)} baris", "info")
             self._start_thread(lambda: self._encrypt_bulk(rows))
         else:
             file_path = self.single_file_var.get().strip()
@@ -809,7 +838,7 @@ class PDFEncryptorApp:
             "Ketentuan:\n"
             "• Baris pertama HARUS header: filename,password\n"
             "• Nama file relatif terhadap folder yang dipilih\n"
-            "• Simpan sebagai CSV (Excel: Save As → CSV (Comma Seperated))\n"
+            "• Simpan sebagai UTF-8 (Excel: Save As → CSV UTF-8)\n"
             "• Tidak ada baris kosong di tengah"
         )
         messagebox.showinfo("Format CSV", text)
@@ -818,7 +847,7 @@ class PDFEncryptorApp:
         messagebox.showinfo(
             f"Tentang {APP_NAME}",
             f"{APP_NAME}\nVersi {APP_VERSION}\n\n{COPYRIGHT}\n\n"
-            "Menggunakan library pikepdf untuk enkripsi PDF 256-bit AES."
+            "Menggunakan pikepdf untuk enkripsi PDF 256-bit AES."
         )
 
 
